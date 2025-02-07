@@ -1,0 +1,8 @@
+C:\Users\Samuel\Desktop\ja\projektSem5\EdgeDetectionApp\bin\x64\Release\EdgeDetectionApp.exe.config
+C:\Users\Samuel\Desktop\ja\projektSem5\EdgeDetectionApp\bin\x64\Release\EdgeDetectionApp.exe
+C:\Users\Samuel\Desktop\ja\projektSem5\EdgeDetectionApp\obj\x64\Release\EdgeDetectionApp.csproj.AssemblyReference.cache
+C:\Users\Samuel\Desktop\ja\projektSem5\EdgeDetectionApp\obj\x64\Release\EdgeDetectionApp.csproj.SuggestedBindingRedirects.cache
+C:\Users\Samuel\Desktop\ja\projektSem5\EdgeDetectionApp\obj\x64\Release\EdgeDetectionApp.Properties.Resources.resources
+C:\Users\Samuel\Desktop\ja\projektSem5\EdgeDetectionApp\obj\x64\Release\EdgeDetectionApp.csproj.GenerateResource.cache
+C:\Users\Samuel\Desktop\ja\projektSem5\EdgeDetectionApp\obj\x64\Release\EdgeDetectionApp.csproj.CoreCompileInputs.cache
+C:\Users\Samuel\Desktop\ja\projektSem5\EdgeDetectionApp\obj\x64\Release\EdgeDetectionApp.exe

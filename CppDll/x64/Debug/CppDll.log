@@ -1,0 +1,5 @@
+﻿  CppDll.cpp
+  .NETFramework,Version=v4.7.2.AssemblyAttributes.cpp
+  CppDll.obj : napotkano moduł MSIL; konsolidowanie przyrostowe jest wyłączone dla modułów MSIL; zostanie wykonana pełna konsolidacja
+     Trwa tworzenie biblioteki C:\Users\Samuel\Desktop\ja\projektSem5\EdgeDetectionApp\x64\Debug\CppDll.lib i obiektu C:\Users\Samuel\Desktop\ja\projektSem5\EdgeDetectionApp\x64\Debug\CppDll.exp
+  CppDll.vcxproj -> C:\Users\Samuel\Desktop\ja\projektSem5\EdgeDetectionApp\x64\Debug\CppDll.dll
