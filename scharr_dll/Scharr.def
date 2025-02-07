@@ -1,0 +1,2 @@
+LIBRARY scharr_dll
+EXPORTS ASMScharrFunction
