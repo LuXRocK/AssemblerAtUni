@@ -4,6 +4,8 @@ using System.ComponentModel;
 using System.Data;
 using System.Diagnostics;
 using System.Drawing;
+using System.Drawing.Imaging;
+using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -18,8 +20,9 @@ namespace EdgeDetectionApp
         [DllImport("C:\\Users\\Samuel\\Desktop\\ja\\projektSem5\\EdgeDetectionApp\\x64\\Debug\\CppDll.dll", CallingConvention = CallingConvention.Cdecl)]
         public static extern void CppScharrFunction(byte[] inputImage, byte[] outputImage, int width, int height);
 
-        [DllImport("C:\\Users\\Samuel\\Desktop\\ja\\projektSem5\\EdgeDetectionApp\\x64\\Debug\\scharr_dll.dll", CallingConvention = CallingConvention.Cdecl)]
-        public static extern void ASMScharrFunction(IntPtr inputImage, IntPtr outputImage, int width, int height);
+        [DllImport("C:\\Users\\Samuel\\Desktop\\ja\\projektSem5\\EdgeDetectionApp\\x64\\Debug\\scharr_dll.dll",
+            EntryPoint = "ASMScharrFunction", ExactSpelling = true, CallingConvention = CallingConvention.Cdecl)]
+        public static unsafe extern void ASMScharrFunction(byte* inputImage, byte* outputImage, int width, int height);
         public MainForm()
         {
             InitializeComponent();
@@ -189,104 +192,134 @@ namespace EdgeDetectionApp
                     byte[] inputPixels = ImageProcessing.BitmapToByteArray(grayImage);
                     byte[] outputPixels = new byte[bufferSize];
 
-                    // Alokacja pamięci niezarządzanej
-                    IntPtr inputPtr = Marshal.AllocHGlobal(bufferSize);
-                    IntPtr outputPtr = Marshal.AllocHGlobal(bufferSize);
-                    Marshal.Copy(inputPixels, 0, inputPtr, bufferSize);
-
                     Stopwatch stopWatch = new Stopwatch();
 
+                    // Pobieramy wybraną liczbę wątków
+                    int numThreads = GetSelectedThreadCount();
+                    int innerHeight = height - 2;
+                    if (innerHeight <= 0)
+                        innerHeight = 0;
+                    numThreads = Math.Min(numThreads, Math.Max(innerHeight, 1));
 
-                    if (rbAsm.Checked)
+                    if (numThreads == 1)
                     {
-
+                        // Tryb jednowątkowy
                         stopWatch.Start();
-                        // Wywołanie funkcji ASM
-                        ASMScharrFunction(inputPtr, outputPtr, width, height);
-                        stopWatch.Stop();
-
-                        Marshal.Copy(outputPtr, outputPixels, 0, bufferSize);
-                        Marshal.FreeHGlobal(inputPtr);
-                        Marshal.FreeHGlobal(outputPtr);
-
-                        lblTime.Text = $"{stopWatch.Elapsed.TotalMilliseconds:F2} ms";
-                    }
-                    else
-                    {
-                        stopWatch.Start();
-                        Array.Clear(outputPixels, 0, outputPixels.Length); // Initialize output to 0
-
-                        int numThreads = GetSelectedThreadCount();
-                        int innerHeight = height - 2;
-
-                        if (innerHeight <= 0)
-                            innerHeight = 0;
-
-                        numThreads = Math.Min(numThreads, Math.Max(innerHeight, 1));
-
-                        if (numThreads == 1)
+                        if (rbAsm.Checked)
                         {
-                            CppScharrFunction(inputPixels, outputPixels, width, height);
+                            unsafe
+                            {
+                                fixed (byte* inputPtr = inputPixels)
+                                fixed (byte* outputPtr = outputPixels)
+                                {
+                                    ASMScharrFunction(inputPtr, outputPtr, width, height);
+                                }
+                            }
                         }
                         else
                         {
-                            int chunkSize = innerHeight / numThreads;
-                            int remainder = innerHeight % numThreads;
-                            int currentStart = 1;
-                            var chunks = new List<Tuple<int, int>>();
-
-                            for (int i = 0; i < numThreads; i++)
-                            {
-                                int currentChunkSize = chunkSize + (i < remainder ? 1 : 0);
-                                int currentEnd = currentStart + currentChunkSize - 1;
-                                currentEnd = Math.Min(currentEnd, height - 2);
-                                chunks.Add(Tuple.Create(currentStart, currentEnd));
-                                currentStart = currentEnd + 1;
-                            }
-
-                            Parallel.ForEach(chunks, new ParallelOptions { MaxDegreeOfParallelism = numThreads }, chunk =>
-                            {
-                                int outputStartRow = chunk.Item1;
-                                int outputEndRow = chunk.Item2;
-
-                                int inputStartRow = Math.Max(0, outputStartRow - 1);
-                                int inputEndRow = Math.Min(height - 1, outputEndRow + 1);
-                                int sliceHeight = inputEndRow - inputStartRow + 1;
-
-                                if (sliceHeight < 3)
-                                    return;
-
-                                byte[] inputSlice = new byte[sliceHeight * width];
-                                Array.Copy(inputPixels, inputStartRow * width, inputSlice, 0, inputSlice.Length);
-
-                                byte[] outputSlice = new byte[sliceHeight * width];
-                                CppScharrFunction(inputSlice, outputSlice, width, sliceHeight);
-
-                                int validStart = 1;
-                                int validEnd = sliceHeight - 2;
-                                int validRowCount = validEnd - validStart + 1;
-
-                                for (int i = 0; i < validRowCount; i++)
-                                {
-                                    int mainRow = outputStartRow + i;
-                                    if (mainRow >= height) break;
-
-                                    Array.Copy(
-                                        outputSlice,
-                                        (validStart + i) * width,
-                                        outputPixels,
-                                        mainRow * width,
-                                        width
-                                    );
-                                }
-                            });
+                            CppScharrFunction(inputPixels, outputPixels, width, height);
                         }
                         stopWatch.Stop();
-                        lblTime.Text = $"{stopWatch.Elapsed.TotalMilliseconds:F2} ms";
                     }
+                    else
+                    {
+                        // Tryb wielowątkowy
+                        stopWatch.Start();
+
+                        // Dzielimy obraz (bez dwóch brzegowych wierszy) na bloki
+                        int chunkSize = innerHeight / numThreads;
+                        int remainder = innerHeight % numThreads;
+                        int currentStart = 1;
+                        var chunks = new List<Tuple<int, int>>();
+                        for (int i = 0; i < numThreads; i++)
+                        {
+                            int currentChunkSize = chunkSize + (i < remainder ? 1 : 0);
+                            int currentEnd = currentStart + currentChunkSize - 1;
+                            currentEnd = Math.Min(currentEnd, height - 2);
+                            chunks.Add(Tuple.Create(currentStart, currentEnd));
+                            currentStart = currentEnd + 1;
+                        }
+
+                        Parallel.ForEach(chunks, new ParallelOptions { MaxDegreeOfParallelism = numThreads }, chunk =>
+                        {
+                            int outputStartRow = chunk.Item1;
+                            int outputEndRow = chunk.Item2;
+
+                            // Aby poprawnie obliczyć piksele brzegowe, pobieramy dodatkowy wiersz nad i pod
+                            int inputStartRow = Math.Max(0, outputStartRow - 1);
+                            int inputEndRow = Math.Min(height - 1, outputEndRow + 1);
+                            int sliceHeight = inputEndRow - inputStartRow + 1;
+                            if (sliceHeight < 3)
+                                return;
+
+                            // Wyodrębniamy fragment obrazu wejściowego
+                            byte[] inputSlice = new byte[sliceHeight * width];
+                            Array.Copy(inputPixels, inputStartRow * width, inputSlice, 0, inputSlice.Length);
+
+                            // Bufor wynikowy dla fragmentu
+                            byte[] outputSlice = new byte[sliceHeight * width];
+
+                            if (rbAsm.Checked)
+                            {
+                                unsafe
+                                {
+                                    fixed (byte* inputSlicePtr = inputSlice)
+                                    fixed (byte* outputSlicePtr = outputSlice)
+                                    {
+                                        ASMScharrFunction(inputSlicePtr, outputSlicePtr, width, sliceHeight);
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                CppScharrFunction(inputSlice, outputSlice, width, sliceHeight);
+                            }
+
+                            // Kopiujemy tylko "ważny" fragment (bez przetwarzania brzegów)
+                            int validStart = 1;
+                            int validEnd = sliceHeight - 2;
+                            int validRowCount = validEnd - validStart + 1;
+                            for (int i = 0; i < validRowCount; i++)
+                            {
+                                int mainRow = outputStartRow + i;
+                                if (mainRow >= height) break;
+                                Array.Copy(
+                                    outputSlice,
+                                    (validStart + i) * width,
+                                    outputPixels,
+                                    mainRow * width,
+                                    width
+                                );
+                            }
+                        });
+                        stopWatch.Stop();
+                    }
+
+                    lblTime.Text = $"{stopWatch.Elapsed.TotalMilliseconds:F2} ms";
 
                     Bitmap edgeImage = ImageProcessing.ByteArrayToBitmap(outputPixels, width, height);
                     pictureBoxResult.Image = edgeImage;
+
+                    string assetsFolder = Path.Combine("C:\\Users\\Samuel\\Desktop\\ja\\projektSem5\\EdgeDetectionApp\\assets");
+                    Directory.CreateDirectory(assetsFolder); // utworzy folder, jeśli nie istnieje
+
+                    // Utwórz nowy folder nazwany aktualną datą i godziną
+                    string timestamp = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
+                    if(rbAsm.Checked) {
+                        timestamp = timestamp + "ASM";
+                        string outputFolder = Path.Combine(assetsFolder, timestamp);
+                        Directory.CreateDirectory(outputFolder);
+                        string outputFilePath = Path.Combine(outputFolder, "edgeImage.png");
+                        edgeImage.Save(outputFilePath, ImageFormat.Png);
+                    }else
+                    {
+                        timestamp = timestamp + "CPP";
+                        string outputFolder = Path.Combine(assetsFolder, timestamp);
+                        Directory.CreateDirectory(outputFolder);
+                        string outputFilePath = Path.Combine(outputFolder, "edgeImage.png");
+                        edgeImage.Save(outputFilePath, ImageFormat.Png);
+                    }
 
                     MessageBox.Show("Processing complete!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
