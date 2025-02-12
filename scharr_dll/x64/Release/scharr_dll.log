@@ -1,4 +1,4 @@
 ﻿  Assembling Scharr.asm...
-Scharr.asm(153): error A2070: invalid instruction operands
-Scharr.asm(159): error A2070: invalid instruction operands
-C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Microsoft\VC\v170\BuildCustomizations\masm.targets(70,5): error MSB3721: Polecenie ml64.exe /c /nologo /Zi /Fo"x64\Release\Scharr.obj" /W3 /errorReport:prompt  /TaScharr.asm zostało zakończone; kod błędu: 1.
+     Trwa tworzenie biblioteki C:\Users\Samuel\Desktop\ja\projektSem5\EdgeDetectionApp\x64\Release\scharr_dll.lib i obiektu C:\Users\Samuel\Desktop\ja\projektSem5\EdgeDetectionApp\x64\Release\scharr_dll.exp
+  LINK : określono opcję /LTCG, lecz generowanie kodu nie było wymagane; usuń opcję /LTCG z wiersza polecenia konsolidatora w celu podwyższenia wydajności konsolidatora
+  scharr_dll.vcxproj -> C:\Users\Samuel\Desktop\ja\projektSem5\EdgeDetectionApp\x64\Release\scharr_dll.dll
