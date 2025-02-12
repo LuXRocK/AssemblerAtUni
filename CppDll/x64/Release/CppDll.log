@@ -1,8 +1,4 @@
-﻿  pch.cpp
-  CppDll.cpp
-  dllmain.cpp
-  Generowanie kodu...
-  .NETFramework,Version=v4.7.2.AssemblyAttributes.cpp
+﻿  CppDll.cpp
      Trwa tworzenie biblioteki C:\Users\Samuel\Desktop\ja\projektSem5\EdgeDetectionApp\x64\Release\CppDll.lib i obiektu C:\Users\Samuel\Desktop\ja\projektSem5\EdgeDetectionApp\x64\Release\CppDll.exp
   LINK : określono opcję /LTCG, lecz generowanie kodu nie było wymagane; usuń opcję /LTCG z wiersza polecenia konsolidatora w celu podwyższenia wydajności konsolidatora
   CppDll.vcxproj -> C:\Users\Samuel\Desktop\ja\projektSem5\EdgeDetectionApp\x64\Release\CppDll.dll
